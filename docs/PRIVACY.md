@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Effective date: 2026-05-21
+Effective date: 2026-05-22
 
 Gmail Guard helps users identify suspicious unread messages on the current Gmail page while using Gmail in Chrome.
 
@@ -32,4 +32,6 @@ The use of information received from Google services will adhere to the Chrome W
 
 ## Contact
 
-Before publishing, replace this section with the developer support email or support URL used in the Chrome Web Store listing.
+For privacy questions or support, contact:
+
+support@lampstring.com
