@@ -1,0 +1,48 @@
+body {
+  width: 320px;
+  margin: 0;
+  color: #1f2937;
+  background: #ffffff;
+  font-family: Arial, "Microsoft JhengHei", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+main {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+}
+
+p {
+  margin: 0;
+  color: #4b5563;
+}
+
+.status {
+  padding: 8px;
+  border-radius: 6px;
+  color: #065f46;
+  background: #ecfdf5;
+  font-size: 12px;
+}
+
+button {
+  height: 34px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #111827;
+  background: #f9fafb;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f3f4f6;
+}

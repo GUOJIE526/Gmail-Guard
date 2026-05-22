@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gmail Guard Settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Gmail Guard</h1>
+        <p>調整目前 Gmail 頁面未讀信件的偵測顯示方式。判斷邏輯全部在瀏覽器本機執行。</p>
+      </header>
+
+      <section>
+        <h2>顯示</h2>
+        <label class="choice">
+          <input id="showPanel" type="checkbox">
+          <span>顯示右下角摘要面板</span>
+        </label>
+        <label class="choice">
+          <input id="highlightRows" type="checkbox">
+          <span>在目前頁面可疑未讀信件列旁加上標記</span>
+        </label>
+        <label class="choice">
+          <input id="collapsedByDefault" type="checkbox">
+          <span>摘要面板預設收合</span>
+        </label>
+      </section>
+
+      <section>
+        <h2>偵測門檻</h2>
+        <label for="riskThreshold">標記門檻</label>
+        <select id="riskThreshold">
+          <option value="medium">中度以上</option>
+          <option value="high">高風險以上</option>
+          <option value="low">所有提示</option>
+        </select>
+
+        <label for="scanLimit">目前頁面每次最多掃描已載入未讀列數</label>
+        <input id="scanLimit" type="number" min="10" max="200" step="10">
+        <p class="hint">此設定是目前頁面的掃描上限；若 Gmail 目前頁面只載入 50 封，擴充套件就只能掃到 50 封，不會跨頁或掃整個信箱。</p>
+      </section>
+
+      <footer>
+        <button id="save" type="button">儲存設定</button>
+        <button id="reset" type="button">恢復預設</button>
+        <span id="status" role="status"></span>
+      </footer>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

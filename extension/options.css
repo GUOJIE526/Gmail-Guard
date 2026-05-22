@@ -1,0 +1,112 @@
+body {
+  margin: 0;
+  color: #1f2937;
+  background: #f9fafb;
+  font-family: Arial, "Microsoft JhengHei", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+main {
+  display: grid;
+  gap: 18px;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+header,
+section,
+footer {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+header,
+section {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  color: #111827;
+  font-size: 22px;
+}
+
+h2 {
+  color: #111827;
+  font-size: 16px;
+}
+
+p {
+  color: #4b5563;
+}
+
+.hint {
+  max-width: 520px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+label {
+  color: #374151;
+  font-weight: 700;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 400;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+select,
+input[type="number"] {
+  width: min(100%, 280px);
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+}
+
+button {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #111827;
+  background: #f9fafb;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f3f4f6;
+}
+
+#status {
+  color: #065f46;
+  font-size: 13px;
+}

@@ -1,0 +1,13 @@
+{
+  "name": "gmail-guard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chrome extension project for local phishing-risk hints on unread messages on the current Gmail page.",
+  "scripts": {
+    "icons": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-icons.ps1",
+    "validate": "node scripts/validate-extension.mjs",
+    "test": "node tests/rules.test.cjs",
+    "package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-extension.ps1"
+  },
+  "devDependencies": {}
+}
