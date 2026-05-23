@@ -6,6 +6,13 @@
   const PANEL_HOST_ID = "gupg-panel-host";
   const BADGE_CLASS = "gupg-row-badge";
   const SCANNED_ATTR = "data-gupg-risk";
+  const OUTLOOK_HOSTS = new Set([
+    "outlook.live.com",
+    "outlook.office.com",
+    "outlook.office365.com",
+    "outlook.com",
+    "www.outlook.com"
+  ]);
   const DEFAULT_SETTINGS = {
     collapsedByDefault: false,
     highlightRows: true,
@@ -24,6 +31,22 @@
   let pendingDeepScan = false;
   let pendingShowProgress = false;
   let lastAutoScanAt = 0;
+
+  function isGmailHost(hostname) {
+    return String(hostname || "").toLowerCase() === "mail.google.com";
+  }
+
+  function isOutlookHost(hostname) {
+    return OUTLOOK_HOSTS.has(String(hostname || "").toLowerCase());
+  }
+
+  function isSupportedMailHost(hostname) {
+    return isGmailHost(hostname) || isOutlookHost(hostname);
+  }
+
+  function currentMailProviderLabel() {
+    return isOutlookHost(location.hostname) ? "Outlook" : "Gmail";
+  }
 
   function loadSettings() {
     return new Promise((resolve) => {
@@ -254,7 +277,7 @@
       <div class="header">
         <div>
           <div class="title">Gmail Guard</div>
-          <div class="subtitle">Current Gmail page only</div>
+          <div class="subtitle">Current ${currentMailProviderLabel()} page only</div>
         </div>
         <div class="actions">
           <button type="button" data-action="options" title="Options">Options</button>
@@ -325,7 +348,7 @@
     return rules.normalizeText(element ? element.innerText || element.textContent : "");
   }
 
-  function isGmailChromeRowText(text) {
+  function isMailChromeRowText(text) {
     return (
       /已選取這個頁面上全部\s*\d+\s*個/.test(text) ||
       /選取「.*」中全部/.test(text) ||
@@ -333,20 +356,52 @@
       /Select all conversations/i.test(text) ||
       /^\d+\s*[-–]\s*\d+\s*列/.test(text) ||
       /主要\s+促銷內容\s+社群網路\s+最新快訊/.test(text) ||
-      /Primary\s+Promotions\s+Social\s+Updates/i.test(text)
+      /Primary\s+Promotions\s+Social\s+Updates/i.test(text) ||
+      /Select all messages/i.test(text) ||
+      /Focused\s+Other\s+Filter/i.test(text) ||
+      /New mail\s+Delete\s+Archive/i.test(text) ||
+      /Favorites\s+Folders\s+Groups/i.test(text)
     );
+  }
+
+  function parseOutlookRowLabel(row) {
+    const label = rules
+      .normalizeText(row && (row.getAttribute("aria-label") || row.getAttribute("title")))
+      .replace(/^(Unread|Read|Selected|未讀|未读|未閱讀|未阅读|已讀|已读|已選取|已选取)\s*[,，:：-]?\s*/i, "");
+    if (!label) return {};
+
+    const parts = label
+      .split(/\s*,\s*/)
+      .map((part) => rules.normalizeText(part))
+      .filter(Boolean);
+
+    while (
+      parts.length > 0 &&
+      /^(Unread|Read|Selected|未讀|未读|未閱讀|未阅读|已讀|已读|已選取|已选取)$/i.test(parts[0])
+    ) {
+      parts.shift();
+    }
+
+    return {
+      sender: parts[0] || "",
+      subject: parts[1] || "",
+      snippet: parts.slice(2).join(" ")
+    };
   }
 
   function hasUnreadTextHint(element) {
     const text = [
       element.getAttribute("aria-label"),
       element.getAttribute("data-tooltip"),
-      element.getAttribute("title")
+      element.getAttribute("title"),
+      element.getAttribute("data-isread"),
+      element.getAttribute("data-is-read"),
+      element.getAttribute("data-read")
     ]
       .filter(Boolean)
       .join(" ");
 
-    return /(Unread|未讀|未读|未閱讀|未阅读)/i.test(text);
+    return /(Unread|未讀|未读|未閱讀|未阅读)/i.test(text) || /(?:^|\s)(false|0)(?:\s|$)/i.test(text);
   }
 
   function isBoldTextNode(element) {
@@ -376,7 +431,11 @@
     if (row.querySelector(".zE")) return "child-class-zE";
     if (row.querySelector(".zF, .bqe")) return "gmail-unread-text-class";
     if (hasUnreadTextHint(row)) return "row-unread-text";
-    if (Array.from(row.querySelectorAll("[aria-label], [data-tooltip], [title]")).some(hasUnreadTextHint)) {
+    if (
+      Array.from(
+        row.querySelectorAll("[aria-label], [data-tooltip], [title], [data-isread], [data-is-read], [data-read]")
+      ).some(hasUnreadTextHint)
+    ) {
       return "child-unread-text";
     }
     if (!row.matches(".yO") && !row.querySelector(".yO") && hasUnreadTypography(row)) {
@@ -391,15 +450,61 @@
     return Boolean(detectUnreadReason(row));
   }
 
+  function isOutlookMessageRow(row) {
+    if (!row || !isElementVisibleFast(row) || isExtensionElement(row)) return false;
+
+    if (
+      row.matches(
+        "[data-automationid='MessageListItem'], [data-automationid='MessageListItemContainer'], [data-convid]"
+      )
+    ) {
+      return true;
+    }
+
+    if (
+      row.querySelector(
+        [
+          "[data-automationid='MessageListItemFrom']",
+          "[data-automationid='MessageListItemSender']",
+          "[data-automationid='MessageListItemSubject']",
+          "[data-automationid='MessageListItemPreview']"
+        ].join(", ")
+      )
+    ) {
+      return true;
+    }
+
+    if (row.matches("div[role='option'][aria-label], div[role='listitem'][aria-label]")) {
+      const text = elementText(row);
+      if (isMailChromeRowText(text)) return false;
+      return text.length >= 12 || rules.normalizeText(row.getAttribute("aria-label")).length >= 12;
+    }
+
+    return false;
+  }
+
   function looksLikeMessageRow(row) {
     if (!row || !isElementVisibleFast(row)) return false;
     if (isExtensionElement(row)) return false;
     if (row.matches("[data-legacy-message-id]")) return true;
-    if (row.querySelector(".yW, .bA4, .bog, .y6, [email]")) return true;
+    if (isOutlookHost(location.hostname)) return isOutlookMessageRow(row);
+    if (
+      row.querySelector(
+        [
+          ".yW",
+          ".bA4",
+          ".bog",
+          ".y6",
+          "[email]"
+        ].join(", ")
+      )
+    ) {
+      return true;
+    }
 
     const cells = row.querySelectorAll("td, [role='gridcell']");
     const text = elementText(row);
-    if (isGmailChromeRowText(text)) return false;
+    if (isMailChromeRowText(text)) return false;
     return cells.length >= 3 && text.length >= 20;
   }
 
@@ -415,8 +520,8 @@
 
     const text = elementText(element);
     if (text.length < 24) return false;
-    if (/Gmail Guard|Current Gmail page only|目前 Gmail 頁面/.test(text)) return false;
-    if (isGmailChromeRowText(text)) return false;
+    if (/Gmail Guard|Current Gmail page only|Current Outlook page only|目前 Gmail 頁面|目前 Outlook 頁面|目前郵件頁面/.test(text)) return false;
+    if (isMailChromeRowText(text)) return false;
 
     return true;
   }
@@ -453,7 +558,19 @@
 
   function getStructuredMessageRows() {
     const candidates = Array.from(
-      document.body.querySelectorAll("tr.zA, tr[role='row'], div[role='row'], [data-legacy-message-id]")
+      document.body.querySelectorAll(
+        [
+          "tr.zA",
+          "tr[role='row']",
+          "div[role='row']",
+          "[data-legacy-message-id]",
+          "div[role='option'][aria-label]",
+          "div[role='listitem'][aria-label]",
+          "[data-automationid='MessageListItem']",
+          "[data-automationid='MessageListItemContainer']",
+          "[data-convid]"
+        ].join(", ")
+      )
     );
     const seen = new Set();
     const rows = [];
@@ -498,33 +615,44 @@
   }
 
   function extractRowData(row) {
+    const outlookLabel = isOutlookHost(location.hostname) ? parseOutlookRowLabel(row) : {};
     const sender = firstText(row, [
       ".yW span[email]",
       ".bA4 span[email]",
       "span[email]",
       "[email]",
       ".yW",
-      ".bA4"
+      ".bA4",
+      "[data-automationid='MessageListItemFrom']",
+      "[data-automationid='MessageListItemSender']",
+      "[data-automationid='MessageListItemFromLine']",
+      "[data-automationid='MessageListItemSenderName']",
+      "[data-testid='MessageListItemSender']"
     ]);
 
     const subject = firstText(row, [
       ".bog",
       ".y6 .bog",
       ".y6 span[id]",
-      ".y6"
+      ".y6",
+      "[data-automationid='MessageListItemSubject']",
+      "[data-testid='MessageListItemSubject']"
     ]);
 
     const snippet = firstText(row, [
       ".y2",
       ".xS",
-      "[role='gridcell']"
+      "[role='gridcell']",
+      "[data-automationid='MessageListItemPreview']",
+      "[data-automationid='MessageListItemSnippet']",
+      "[data-testid='MessageListItemPreview']"
     ]);
 
     const fallback = elementText(row);
     return {
-      sender,
-      subject: subject || fallback.slice(0, 160),
-      snippet: snippet || fallback.slice(0, 600)
+      sender: sender || outlookLabel.sender,
+      subject: subject || outlookLabel.subject || fallback.slice(0, 160),
+      snippet: snippet || outlookLabel.snippet || fallback.slice(0, 600)
     };
   }
 
@@ -631,7 +759,7 @@
     detail.textContent =
       options && options.allowVisualFallback
         ? "手動掃描會使用較完整的畫面偵測，可能稍慢。"
-        : "進入 Gmail 時只跑快速掃描，避免拖慢信箱。";
+        : "進入信箱時只跑快速掃描，避免拖慢頁面。";
 
     item.append(title, detail);
     list.appendChild(item);
@@ -673,7 +801,7 @@
 
     const title = document.createElement("span");
     title.className = "item-title";
-    title.textContent = "Gmail 掃描發生錯誤";
+    title.textContent = "郵件掃描發生錯誤";
 
     const detail = document.createElement("span");
     detail.className = "item-detail";
@@ -704,7 +832,7 @@
     const label = document.createElement("span");
     label.textContent =
       scanResult.rowsScanned === 0
-        ? `目前 Gmail 頁面未偵測到未讀列；候選信件列 ${scanResult.candidateCount} 封`
+        ? `目前郵件頁面未偵測到未讀列；候選信件列 ${scanResult.candidateCount} 封`
         : `目前頁面已掃描 ${scanResult.rowsScanned} / 上限 ${scanResult.limit} 封已載入未讀信件，${scanResult.findings.length} 封需注意`;
 
     const score = document.createElement("span");
@@ -730,8 +858,8 @@
       detail.className = "item-detail";
       detail.textContent =
         scanResult.candidateCount > 0
-          ? `診斷：有抓到 ${scanResult.candidateCount} 封目前頁面候選信件列，但 Gmail 未讀標記/粗體判斷都未命中。`
-          : "自動深度掃描也沒有抓到 Gmail 信件列，可能是 Gmail DOM 結構或頁面容器與預期不同。";
+          ? `診斷：有抓到 ${scanResult.candidateCount} 封目前頁面候選信件列，但未讀標記/粗體判斷都未命中。`
+          : "自動深度掃描也沒有抓到信件列，可能是郵件頁面 DOM 結構或頁面容器與預期不同。";
 
       item.append(title, detail);
       list.appendChild(item);
@@ -759,8 +887,8 @@
     footnote.className = "footnote";
     footnote.textContent =
       scanResult.rowsScanned < scanResult.limit
-        ? `僅掃描目前 Gmail 頁面。此頁目前偵測到 ${scanResult.rowsScanned} 封未讀列；耗時 ${scanResult.durationMs}ms。不會傳送信件內容。`
-        : `僅分析目前 Gmail 頁面已載入的未讀列，不會跨頁、不會掃整個信箱；耗時 ${scanResult.durationMs}ms。`;
+        ? `僅掃描目前郵件頁面。此頁目前偵測到 ${scanResult.rowsScanned} 封未讀列；耗時 ${scanResult.durationMs}ms。不會傳送信件內容。`
+        : `僅分析目前郵件頁面已載入的未讀列，不會跨頁、不會掃整個信箱；耗時 ${scanResult.durationMs}ms。`;
     body.appendChild(footnote);
 
     renderCollapseState();
@@ -779,7 +907,7 @@
   }
 
   function runScan() {
-    if (!location.hostname.endsWith("mail.google.com")) return;
+    if (!isSupportedMailHost(location.hostname)) return;
     if (scanInProgress) return;
     scanInProgress = true;
     const allowVisualFallback = pendingDeepScan;

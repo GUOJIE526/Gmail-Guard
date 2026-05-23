@@ -44,8 +44,18 @@ if (manifest.host_permissions && manifest.host_permissions.length > 0) {
 const scripts = manifest.content_scripts || [];
 if (scripts.length !== 1) fail("expected exactly one content script declaration");
 const matches = scripts[0].matches || [];
-if (matches.length !== 1 || matches[0] !== "https://mail.google.com/*") {
-  fail("content script must be limited to https://mail.google.com/*");
+const allowedMatches = [
+  "https://mail.google.com/*",
+  "https://outlook.live.com/*",
+  "https://outlook.office.com/*",
+  "https://outlook.office365.com/*",
+  "https://outlook.com/*",
+  "https://www.outlook.com/*"
+];
+const unexpectedMatches = matches.filter((match) => !allowedMatches.includes(match));
+const missingMatches = allowedMatches.filter((match) => !matches.includes(match));
+if (unexpectedMatches.length > 0 || missingMatches.length > 0 || matches.length !== allowedMatches.length) {
+  fail(`content script must be limited to supported Gmail/Outlook pages: ${allowedMatches.join(", ")}`);
 }
 
 for (const size of [16, 32, 48, 128]) {

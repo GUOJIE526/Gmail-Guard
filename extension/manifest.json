@@ -3,7 +3,7 @@
   "name": "Gmail Guard",
   "short_name": "Gmail Guard",
   "version": "1.0.0",
-  "description": "Highlights suspicious unread messages on the current Gmail page with local phishing-risk hints.",
+  "description": "Highlights suspicious unread messages on the current Gmail or Outlook page with local phishing-risk hints.",
   "minimum_chrome_version": "114",
   "icons": {
     "16": "assets/icon-16.png",
@@ -28,7 +28,14 @@
   "permissions": ["storage"],
   "content_scripts": [
     {
-      "matches": ["https://mail.google.com/*"],
+      "matches": [
+        "https://mail.google.com/*",
+        "https://outlook.live.com/*",
+        "https://outlook.office.com/*",
+        "https://outlook.office365.com/*",
+        "https://outlook.com/*",
+        "https://www.outlook.com/*"
+      ],
       "js": ["src/rules.js", "src/content.js"],
       "run_at": "document_idle"
     }

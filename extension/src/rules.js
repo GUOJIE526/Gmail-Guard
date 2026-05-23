@@ -334,7 +334,7 @@
         }
       }
     } else if (brands.length > 0) {
-      addIssue(issues, "low", "無法確認寄件網域", "Gmail 目前列表未提供可解析的寄件者 email");
+      addIssue(issues, "low", "無法確認寄件網域", "目前郵件列表未提供可解析的寄件者 email");
     }
 
     const urgentHits = containsAny(fullText, urgentTerms);
