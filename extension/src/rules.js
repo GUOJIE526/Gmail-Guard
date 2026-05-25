@@ -137,34 +137,63 @@
     "locked"
   ];
 
-  const credentialTerms = [
-    "驗證",
+  const accountAccessTerms = [
     "登入",
-    "密碼",
     "帳號",
     "身分",
     "身份",
+    "login",
+    "log in",
+    "sign in",
+    "account"
+  ];
+
+  const routineAccessTerms = [
+    "登入查看",
+    "登入後查看",
+    "登入以查看",
+    "登入即可查看",
+    "sign in to view",
+    "login to view",
+    "log in to view",
+    "view your invoice",
+    "view your order"
+  ];
+
+  const credentialTheftTerms = [
+    "密碼",
+    "驗證帳號",
+    "確認帳號",
+    "驗證您的帳號",
+    "確認您的帳號",
     "重新啟用",
     "安全性警告",
+    "輸入密碼",
+    "更新密碼",
     "verify",
-    "login",
     "password",
     "credential",
     "confirm your account",
     "security alert",
+    "update your password",
+    "enter your password",
     "reactivate"
   ];
 
-  const moneyTerms = [
+  const transactionalTerms = [
     "付款",
     "匯款",
     "發票",
     "退款",
     "帳單",
     "信用卡",
+    "訂單",
+    "收據",
     "payment",
     "invoice",
     "refund",
+    "receipt",
+    "order",
     "wire transfer",
     "bank transfer",
     "billing"
@@ -269,6 +298,24 @@
     return brandRules.filter((rule) => rule.keywords.some((keyword) => lower.includes(keyword.toLowerCase())));
   }
 
+  function hasRoutineAccessContext(text) {
+    return containsAny(text, routineAccessTerms).length > 0;
+  }
+
+  function threatDetails(threats) {
+    return (Array.isArray(threats) ? threats : [])
+      .flatMap((threat) => {
+        if (!threat) return [];
+        if (Array.isArray(threat.threatTypes)) return threat.threatTypes;
+        if (Array.isArray(threat.fullHashDetails)) {
+          return threat.fullHashDetails.map((detail) => detail && detail.threatType).filter(Boolean);
+        }
+        return threat.threatType ? [threat.threatType] : [];
+      })
+      .filter(Boolean)
+      .slice(0, 4);
+  }
+
   function severityWeight(severity) {
     if (severity === "critical") return 45;
     if (severity === "high") return 30;
@@ -304,22 +351,33 @@
     const sender = normalizeText(input && input.sender);
     const subject = normalizeText(input && input.subject);
     const snippet = normalizeText(input && input.snippet);
+    const urls = Array.isArray(input && input.urls) ? input.urls.filter(Boolean).slice(0, 10) : [];
+    const safeBrowsingThreats = Array.isArray(input && input.safeBrowsingThreats) ? input.safeBrowsingThreats : [];
     const senderDomain = getEmailDomain(sender);
     const fullText = normalizeText(`${sender} ${subject} ${snippet}`);
     const issues = [];
     const brands = findMentionedBrands(fullText);
+    const senderSignals = {
+      hasParseableDomain: Boolean(senderDomain),
+      allowedBrandDomain: false,
+      suspiciousDomain: false,
+      untrustedBrandDomain: false
+    };
 
     if (senderDomain) {
       if (senderDomain.includes("xn--")) {
         addIssue(issues, "high", "寄件者網域疑似混淆", `${senderDomain} 使用 punycode`);
+        senderSignals.suspiciousDomain = true;
       }
 
       if (suspiciousTlds.has(getTld(senderDomain))) {
         addIssue(issues, "medium", "寄件者使用高風險網域", senderDomain);
+        senderSignals.suspiciousDomain = true;
       }
 
       if (freeMailDomains.has(baseDomain(senderDomain)) && brands.length > 0) {
         addIssue(issues, "medium", "品牌通知使用免費信箱", `${brands[0].brand} 相關信件卻來自 ${senderDomain}`);
+        senderSignals.untrustedBrandDomain = true;
       }
 
       const senderSkeleton = skeleton(baseDomain(senderDomain));
@@ -327,10 +385,15 @@
         const allowed = domainAllowed(senderDomain, brand.allowedDomains);
         const brandLooksPresent = brand.keywords.some((keyword) => senderSkeleton.includes(skeleton(keyword)));
 
-        if (!allowed && brandLooksPresent) {
+        if (allowed) {
+          senderSignals.allowedBrandDomain = true;
+        } else if (brandLooksPresent) {
           addIssue(issues, "high", `疑似冒充 ${brand.brand}`, `寄件網域 ${senderDomain} 看起來像品牌但不是官方網域`);
-        } else if (!allowed && brands.length === 1) {
+          senderSignals.suspiciousDomain = true;
+          senderSignals.untrustedBrandDomain = true;
+        } else if (brands.length === 1) {
           addIssue(issues, "medium", `疑似冒充 ${brand.brand}`, `寄件網域 ${senderDomain} 不在常見官方網域清單`);
+          senderSignals.untrustedBrandDomain = true;
         }
       }
     } else if (brands.length > 0) {
@@ -338,19 +401,34 @@
     }
 
     const urgentHits = containsAny(fullText, urgentTerms);
-    const credentialHits = containsAny(fullText, credentialTerms);
-    const moneyHits = containsAny(fullText, moneyTerms);
+    const accountAccessHits = containsAny(fullText, accountAccessTerms);
+    const credentialTheftHits = containsAny(fullText, credentialTheftTerms);
+    const transactionalHits = containsAny(fullText, transactionalTerms);
     const lureHits = containsAny(fullText, lureTerms);
     const fileHits = containsAny(fullText, dangerousFileTerms);
+    const routineAccess = hasRoutineAccessContext(fullText);
 
-    if (urgentHits.length > 0 && credentialHits.length > 0) {
-      addIssue(issues, "high", "急迫要求驗證帳號", `${urgentHits[0]} / ${credentialHits[0]}`);
+    if (urgentHits.length > 0 && (credentialTheftHits.length > 0 || accountAccessHits.length > 0)) {
+      addIssue(
+        issues,
+        "high",
+        "急迫要求處理帳號",
+        `${urgentHits[0]} / ${(credentialTheftHits[0] || accountAccessHits[0])}`
+      );
     } else if (urgentHits.length > 0) {
       addIssue(issues, "medium", "強烈急迫語氣", urgentHits.slice(0, 3).join(", "));
     }
 
-    if (moneyHits.length > 0 && credentialHits.length > 0) {
-      addIssue(issues, "medium", "付款與帳號驗證混在一起", `${moneyHits[0]} / ${credentialHits[0]}`);
+    if (transactionalHits.length > 0 && credentialTheftHits.length > 0) {
+      const severity = senderSignals.suspiciousDomain || senderSignals.untrustedBrandDomain || urgentHits.length > 0 ? "medium" : "low";
+      addIssue(issues, severity, "交易通知包含敏感帳號要求", `${transactionalHits[0]} / ${credentialTheftHits[0]}`);
+    } else if (
+      transactionalHits.length > 0 &&
+      accountAccessHits.length > 0 &&
+      !routineAccess &&
+      (senderSignals.suspiciousDomain || urgentHits.length > 0)
+    ) {
+      addIssue(issues, "medium", "交易通知搭配可疑帳號操作", `${transactionalHits[0]} / ${accountAccessHits[0]}`);
     }
 
     if (lureHits.length > 0) {
@@ -358,18 +436,43 @@
     }
 
     if (fileHits.length > 0) {
-      addIssue(issues, "medium", "提到高風險檔案或巨集", fileHits.slice(0, 3).join(", "));
+      const macroHit = fileHits.some((hit) => /巨集|macro/i.test(hit));
+      addIssue(
+        issues,
+        macroHit || fileHits.length > 1 ? "high" : "medium",
+        "提到高風險檔案或巨集",
+        fileHits.slice(0, 3).join(", ")
+      );
+    }
+
+    const safeBrowsingDetails = threatDetails(safeBrowsingThreats);
+    if (safeBrowsingThreats.length > 0) {
+      addIssue(
+        issues,
+        "high",
+        "Safe Browsing API 回報潛在風險 URL",
+        safeBrowsingDetails.length > 0 ? safeBrowsingDetails.join(", ") : "Google Safe Browsing API threat match"
+      );
     }
 
     const issuesOut = uniqueIssues(issues);
     const rawScore = issuesOut.reduce((total, issue) => total + severityWeight(issue.severity), 0);
     const score = Math.min(100, rawScore);
+    const senderConfidence = senderSignals.suspiciousDomain
+      ? "suspicious"
+      : senderSignals.allowedBrandDomain
+        ? "trusted"
+        : senderSignals.hasParseableDomain
+          ? "untrusted"
+          : "unknown";
 
     return {
       score,
       risk: riskFromScore(score),
       issues: issuesOut.slice(0, 8),
+      senderConfidence,
       senderDomain,
+      urls,
       scannedFields: {
         sender: Boolean(sender),
         subject: Boolean(subject),

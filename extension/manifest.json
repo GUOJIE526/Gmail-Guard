@@ -26,6 +26,7 @@
   },
   "options_page": "options.html",
   "permissions": ["storage"],
+  "host_permissions": ["https://safebrowsing.googleapis.com/*"],
   "content_scripts": [
     {
       "matches": [

@@ -37,8 +37,16 @@ for (const permission of permissions) {
   if (!allowedPermissions.has(permission)) fail(`unexpected permission: ${permission}`);
 }
 
-if (manifest.host_permissions && manifest.host_permissions.length > 0) {
-  fail("host_permissions should not be declared; content script match is enough for this release");
+const hostPermissions = manifest.host_permissions || [];
+const allowedHostPermissions = ["https://safebrowsing.googleapis.com/*"];
+const unexpectedHostPermissions = hostPermissions.filter((permission) => !allowedHostPermissions.includes(permission));
+const missingHostPermissions = allowedHostPermissions.filter((permission) => !hostPermissions.includes(permission));
+if (
+  unexpectedHostPermissions.length > 0 ||
+  missingHostPermissions.length > 0 ||
+  hostPermissions.length !== allowedHostPermissions.length
+) {
+  fail(`host_permissions must be limited to optional Safe Browsing API access: ${allowedHostPermissions.join(", ")}`);
 }
 
 const scripts = manifest.content_scripts || [];
@@ -74,7 +82,13 @@ for (const filePath of textFiles) {
   if (/chrome\.tabs\b/.test(text)) fail(`tabs API usage in ${rel}`);
   if (/chrome\.scripting\b/.test(text)) fail(`scripting API usage in ${rel}`);
   if (/chrome\.identity\b/.test(text)) fail(`identity API usage in ${rel}`);
-  if (/\bfetch\s*\(/.test(text) || /\bXMLHttpRequest\b/.test(text)) fail(`network request API usage in ${rel}`);
+  if (/\bXMLHttpRequest\b/.test(text)) fail(`XMLHttpRequest usage in ${rel}`);
+  if (/\bfetch\s*\(/.test(text)) {
+    if (rel !== path.join("src", "background.js")) fail(`network request API usage in ${rel}`);
+    if (!/https:\/\/safebrowsing\.googleapis\.com\/v5\/urls:search/.test(text)) {
+      fail(`background fetch must be limited to Safe Browsing API in ${rel}`);
+    }
+  }
 }
 
 console.log("Extension validation passed.");

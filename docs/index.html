@@ -103,7 +103,9 @@
         When the user opens Gmail or Outlook, the extension reads only the
         current mail page content that is already loaded in the browser,
         including visible unread sender text, email or domain data when the page
-        exposes it, subject text, and message snippets.
+        exposes it, subject text, message snippets, and external URLs when they
+        are visible in or extracted from the currently visible or explicitly
+        opened mail-page content.
       </p>
       <p>
         This data is used only to show phishing-risk hints to the user inside
@@ -121,16 +123,45 @@
         tracking pixels, external AI services, the Gmail API, Microsoft Graph
         API, or OAuth.
       </p>
+      <p>
+        By default, Gmail Guard makes no external network requests.
+      </p>
+
+      <h2>Optional URL Reputation Checks</h2>
+      <p>
+        Users can opt in to Google Safe Browsing API URL reputation checks from
+        the settings page. This feature is disabled by default.
+      </p>
+      <p>
+        When enabled, Gmail Guard checks only external URLs extracted from the
+        currently visible or explicitly opened mail-page content. It sends those
+        URLs to Google Safe Browsing API for reputation lookup. It does not send
+        mailbox credentials, sender lists, full message bodies, unrelated
+        browsing data, analytics, or account information.
+      </p>
+      <p>
+        Safe Browsing API results are used only as potential risk indicators. A
+        no-match response does not mean a message is safe.
+      </p>
 
       <h2>Local Settings</h2>
       <p>
-        Gmail Guard uses Chrome storage only to save local extension
-        preferences, such as whether to show the floating panel, whether to
-        highlight rows, scan limit, and risk threshold.
+        Gmail Guard uses Chrome storage to save local extension preferences,
+        such as whether to show the floating panel, whether to highlight rows,
+        scan limit, risk threshold, and whether optional Safe Browsing API
+        checks are enabled. If the user provides a Safe Browsing API key, it is
+        stored locally in Chrome storage on the user's device and is not sent to
+        the developer. Safe Browsing API response cache entries are also stored
+        locally.
       </p>
 
       <h2>Data Sharing</h2>
-      <p>No user data is shared with the developer or any third party.</p>
+      <p>No user data is shared with the developer.</p>
+      <p>
+        If the user enables Safe Browsing API checks, extracted external URLs
+        are sent to Google Safe Browsing API for reputation lookup. This is
+        optional and disabled by default.
+      </p>
 
       <h2>Limited Use Disclosure</h2>
       <p>
@@ -139,9 +170,10 @@
         for unread messages on the current mail page.
       </p>
       <p>
-        The extension does not transfer this information to any third party and
-        does not use it for advertising, profiling, credit decisions, or lending
-        decisions.
+        Except for optional user-enabled Safe Browsing API URL reputation
+        checks, the extension does not transfer this information to any third
+        party and does not use it for advertising, profiling, credit decisions,
+        or lending decisions.
       </p>
       <p>
         The use of information received from Google services will adhere to the
