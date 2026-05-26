@@ -17,9 +17,11 @@
     collapsedByDefault: false,
     highlightRows: true,
     riskThreshold: "medium",
+    safeBrowsingEnabled: false,
     scanLimit: 80,
     showPanel: true
   };
+  const URL_CHECK_LIMIT = 8;
 
   let settings = { ...DEFAULT_SETTINGS };
   let scanTimer = 0;
@@ -603,6 +605,10 @@
     return rows;
   }
 
+  function attributeValues(node, attributes) {
+    return attributes.map((attribute) => node && node.getAttribute(attribute)).filter(Boolean);
+  }
+
   function firstText(row, selectors) {
     for (const selector of selectors) {
       const node = row.querySelector(selector);
@@ -614,13 +620,95 @@
     return "";
   }
 
+  function firstParseableSender(row, selectors) {
+    const attributes = [
+      "email",
+      "data-email",
+      "data-email-address",
+      "data-smtp-address",
+      "data-mailbox",
+      "data-hovercard-id",
+      "title",
+      "aria-label",
+      "aria-description"
+    ];
+
+    for (const selector of selectors) {
+      for (const node of row.querySelectorAll(selector)) {
+        const candidates = [
+          ...attributeValues(node, attributes),
+          rules.normalizeText(node.textContent)
+        ];
+
+        for (const candidate of candidates) {
+          const email = rules.parseEmail(candidate);
+          if (email) return email;
+        }
+      }
+    }
+
+    const rowCandidates = [
+      ...attributeValues(row, attributes),
+      rules.normalizeText(row.textContent)
+    ];
+    for (const candidate of rowCandidates) {
+      const email = rules.parseEmail(candidate);
+      if (email) return email;
+    }
+
+    return "";
+  }
+
+  function normalizeCandidateUrl(value) {
+    const text = rules.normalizeText(value).replace(/[),.;，。]+$/g, "");
+    if (!/^https?:\/\//i.test(text)) return "";
+
+    try {
+      const url = new URL(text);
+      if (!/^https?:$/i.test(url.protocol)) return "";
+      if (isSupportedMailHost(url.hostname)) return "";
+      return url.href;
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function extractUrlsFromText(text) {
+    const result = [];
+    const matches = String(text || "").match(/https?:\/\/[^\s<>"']+/gi) || [];
+    for (const match of matches) {
+      const url = normalizeCandidateUrl(match);
+      if (url) result.push(url);
+    }
+    return result;
+  }
+
+  function extractRowUrls(row, fallbackText) {
+    const urls = [];
+
+    for (const anchor of row.querySelectorAll("a[href]")) {
+      const url = normalizeCandidateUrl(anchor.getAttribute("href"));
+      if (url) urls.push(url);
+    }
+
+    urls.push(...extractUrlsFromText(fallbackText));
+
+    return Array.from(new Set(urls)).slice(0, URL_CHECK_LIMIT);
+  }
+
   function extractRowData(row) {
     const outlookLabel = isOutlookHost(location.hostname) ? parseOutlookRowLabel(row) : {};
-    const sender = firstText(row, [
+    const senderSelectors = [
       ".yW span[email]",
       ".bA4 span[email]",
+      ".yW [email]",
+      ".bA4 [email]",
       "span[email]",
       "[email]",
+      "[data-email]",
+      "[data-email-address]",
+      "[data-smtp-address]",
+      "[data-hovercard-id]",
       ".yW",
       ".bA4",
       "[data-automationid='MessageListItemFrom']",
@@ -628,7 +716,9 @@
       "[data-automationid='MessageListItemFromLine']",
       "[data-automationid='MessageListItemSenderName']",
       "[data-testid='MessageListItemSender']"
-    ]);
+    ];
+    const senderEmail = firstParseableSender(row, senderSelectors);
+    const sender = senderEmail || firstText(row, senderSelectors);
 
     const subject = firstText(row, [
       ".bog",
@@ -649,10 +739,13 @@
     ]);
 
     const fallback = elementText(row);
+    const finalSubject = subject || outlookLabel.subject || fallback.slice(0, 160);
+    const finalSnippet = snippet || outlookLabel.snippet || fallback.slice(0, 600);
     return {
       sender: sender || outlookLabel.sender,
-      subject: subject || outlookLabel.subject || fallback.slice(0, 160),
-      snippet: snippet || outlookLabel.snippet || fallback.slice(0, 600)
+      subject: finalSubject,
+      snippet: finalSnippet,
+      urls: extractRowUrls(row, `${finalSubject} ${finalSnippet} ${fallback}`)
     };
   }
 
@@ -674,7 +767,34 @@
     row.setAttribute(SCANNED_ATTR, result.risk.key);
   }
 
-  function scanUnreadRows(options) {
+  function checkSafeBrowsingUrls(urls) {
+    if (!settings.safeBrowsingEnabled || !globalThis.chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+      return Promise.resolve({ ok: true, disabled: true, results: {} });
+    }
+
+    const uniqueUrls = Array.from(new Set(urls.filter(Boolean))).slice(0, URL_CHECK_LIMIT);
+    if (uniqueUrls.length === 0) return Promise.resolve({ ok: true, results: {} });
+
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: "checkSafeBrowsingUrls", urls: uniqueUrls }, (response) => {
+        if (chrome.runtime.lastError) {
+          resolve({ ok: false, error: chrome.runtime.lastError.message, results: {} });
+          return;
+        }
+        resolve(response || { ok: false, error: "No Safe Browsing API response", results: {} });
+      });
+    });
+  }
+
+  function threatsForUrls(urls, safeBrowsingResult) {
+    const results = (safeBrowsingResult && safeBrowsingResult.results) || {};
+    return urls.flatMap((url) => {
+      const entry = results[url];
+      return entry && Array.isArray(entry.threats) ? entry.threats : [];
+    });
+  }
+
+  async function scanUnreadRows(options) {
     const candidates = getCandidateMessageRows(options);
     const rows = [];
     const reasonCounts = {};
@@ -694,17 +814,34 @@
 
     clearBadges();
 
+    const analyzedRows = [];
+    const urlsToCheck = [];
     for (const row of rows) {
       const data = extractRowData(row);
       const result = rules.analyzeMessage(data);
+      analyzedRows.push({ row, data, result });
+      urlsToCheck.push(...data.urls);
+    }
+
+    const safeBrowsing = await checkSafeBrowsingUrls(urlsToCheck);
+
+    for (const item of analyzedRows) {
+      const threats = threatsForUrls(item.data.urls, safeBrowsing);
+      const result = threats.length > 0 ? rules.analyzeMessage({ ...item.data, safeBrowsingThreats: threats }) : item.result;
       highestScore = Math.max(highestScore, result.score);
       if (result.score === highestScore) highestRisk = result.risk.key;
 
       if (rules.meetsThreshold(result.risk.key, settings.riskThreshold)) {
-        findings.push({ row, data, result });
-        addBadge(row, result);
+        findings.push({ row: item.row, data: item.data, result });
+        addBadge(item.row, result);
       }
     }
+
+    const safeBrowsingResults = (safeBrowsing && safeBrowsing.results) || {};
+    const checkedCount = Object.values(safeBrowsingResults).filter((entry) => entry && entry.checked).length;
+    const threatCount = Object.values(safeBrowsingResults).filter(
+      (entry) => entry && Array.isArray(entry.threats) && entry.threats.length > 0
+    ).length;
 
     return {
       candidateCount: candidates.length,
@@ -715,7 +852,14 @@
       findings,
       highestScore,
       risk: rules.riskFromScore(highestScore || 0),
-      highestRisk
+      highestRisk,
+      safeBrowsing: {
+        enabled: Boolean(settings.safeBrowsingEnabled),
+        checkedCount,
+        threatCount,
+        missingApiKey: Boolean(safeBrowsing && safeBrowsing.missingApiKey),
+        error: safeBrowsing && safeBrowsing.error ? safeBrowsing.error : ""
+      }
     };
   }
 
@@ -883,12 +1027,28 @@
 
     body.appendChild(list);
 
-    const footnote = document.createElement("div");
-    footnote.className = "footnote";
-    footnote.textContent =
+    const footnoteParts = [
       scanResult.rowsScanned < scanResult.limit
         ? `僅掃描目前郵件頁面。此頁目前偵測到 ${scanResult.rowsScanned} 封未讀列；耗時 ${scanResult.durationMs}ms。不會傳送信件內容。`
-        : `僅分析目前郵件頁面已載入的未讀列，不會跨頁、不會掃整個信箱；耗時 ${scanResult.durationMs}ms。`;
+        : `僅分析目前郵件頁面已載入的未讀列，不會跨頁、不會掃整個信箱；耗時 ${scanResult.durationMs}ms。`
+    ];
+    if (scanResult.safeBrowsing && scanResult.safeBrowsing.enabled) {
+      if (scanResult.safeBrowsing.missingApiKey) {
+        footnoteParts.push("Safe Browsing API 已啟用但尚未設定 API key，因此未查詢 URL。");
+      } else if (scanResult.safeBrowsing.error) {
+        footnoteParts.push(`Safe Browsing API 查詢失敗：${scanResult.safeBrowsing.error}`);
+      } else if (scanResult.safeBrowsing.checkedCount > 0) {
+        footnoteParts.push(
+          `已透過 Google Safe Browsing API 檢查 ${scanResult.safeBrowsing.checkedCount} 個目前畫面抽取出的 URL；${scanResult.safeBrowsing.threatCount} 個回報潛在風險。`
+        );
+      } else {
+        footnoteParts.push("Safe Browsing API 已啟用，但目前掃描的未讀列沒有可檢查的外部 URL。");
+      }
+    }
+
+    const footnote = document.createElement("div");
+    footnote.className = "footnote";
+    footnote.textContent = footnoteParts.join(" ");
     body.appendChild(footnote);
 
     renderCollapseState();
@@ -934,11 +1094,11 @@
       renderErrorPanel(error);
     }
 
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       const startedAt = performance.now();
 
       try {
-        const result = scanUnreadRows({ allowVisualFallback });
+        const result = await scanUnreadRows({ allowVisualFallback });
         result.durationMs = Math.round(performance.now() - startedAt);
         result.scanMode = allowVisualFallback ? "manual-deep" : "fast";
 
@@ -947,9 +1107,9 @@
             renderScanningPanel({ allowVisualFallback: true });
           }
 
-          window.setTimeout(() => {
+          window.setTimeout(async () => {
             try {
-              const deepResult = scanUnreadRows({ allowVisualFallback: true });
+              const deepResult = await scanUnreadRows({ allowVisualFallback: true });
               deepResult.durationMs = Math.round(performance.now() - startedAt);
               deepResult.scanMode = "auto-deep";
               completeScan(deepResult);

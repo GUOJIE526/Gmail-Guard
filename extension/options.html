@@ -43,6 +43,17 @@
         <p class="hint">此設定是目前頁面的掃描上限；若目前郵件頁面只載入 50 封，擴充套件就只能掃到 50 封，不會跨頁或掃整個信箱。</p>
       </section>
 
+      <section>
+        <h2>URL reputation</h2>
+        <label class="choice">
+          <input id="safeBrowsingEnabled" type="checkbox">
+          <span>啟用 Google Safe Browsing API 檢查目前畫面抽取出的外部 URL</span>
+        </label>
+        <label for="safeBrowsingApiKey">Safe Browsing API key</label>
+        <input id="safeBrowsingApiKey" type="text" autocomplete="off" spellcheck="false">
+        <p class="hint">預設關閉。啟用後，Gmail Guard 只會把目前可見或已開啟信件內容中抽取出的外部 URL 送到 Google Safe Browsing API，不會送出信件內文、寄件者列表或帳號資訊。API key 只存在本機 Chrome storage。</p>
+      </section>
+
       <footer>
         <button id="save" type="button">儲存設定</button>
         <button id="reset" type="button">恢復預設</button>

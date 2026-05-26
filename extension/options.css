@@ -74,7 +74,8 @@ input[type="checkbox"] {
 }
 
 select,
-input[type="number"] {
+input[type="number"],
+input[type="text"] {
   width: min(100%, 280px);
   height: 34px;
   padding: 0 8px;

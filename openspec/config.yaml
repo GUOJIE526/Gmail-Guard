@@ -1,13 +1,13 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Gmail Guard is a Chrome Manifest V3 extension for local phishing-risk hints on unread Gmail and Outlook Web messages.
+  The deployed extension is the extension/ folder. The project intentionally has no backend, no OAuth, no Gmail API, no Microsoft Graph API, no analytics, no external AI service, and no network requests unless a future approved change explicitly updates validation and user-facing privacy/store documents.
+  OpenSpec artifact language policy: artifacts generated through openspec-propose, openspec-ff-change, and openspec-new-change workflows must be written in Traditional Chinese. Keep professional terms and necessary vocabulary in English, including file paths, commands, code identifiers, API names, product names, protocol names, capability names, and schema-required OpenSpec keywords.
+  This policy applies to proposal.md, design.md, spec.md, tasks.md, and any related OpenSpec artifact content created by those workflows. Preserve exact OpenSpec-required syntax when needed for validation, including kebab-case capability identifiers, checkbox syntax, operation headings, requirement/scenario headings, and normative keywords such as SHALL and MUST.
+  When a change could affect privacy, permissions, network behavior, mailbox APIs, or extension scan semantics, the generated artifacts must explicitly preserve or discuss those project boundaries.
+  Include validation tasks such as npm run test and npm run validate when implementation affects runtime behavior or release boundaries.
+  This config.yaml file itself must remain written in English.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
