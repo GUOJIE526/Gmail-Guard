@@ -118,6 +118,45 @@ function assertVisibleRisk(input, label) {
   );
 }
 
+const multilingualBenignTransactionalCases = [
+  {
+    label: "trusted simplified chinese order receipt",
+    input: {
+      sender: "Amazon <shipment@amazon.com>",
+      subject: "订单收据",
+      snippet: "登录即可查看您的发票和配送信息。"
+    }
+  },
+  {
+    label: "trusted japanese delivery receipt",
+    input: {
+      sender: "Amazon <shipment@amazon.co.jp>",
+      subject: "注文の領収書",
+      snippet: "ログインして配送状況を確認できます。"
+    }
+  },
+  {
+    label: "trusted spanish invoice routine access",
+    input: {
+      sender: "DHL Express <notice@dhl.com>",
+      subject: "Recibo de envio",
+      snippet: "Inicie sesion para ver su factura y los detalles de su pedido."
+    }
+  },
+  {
+    label: "trusted french invoice routine access",
+    input: {
+      sender: "DHL Express <notice@dhl.com>",
+      subject: "Facture de livraison",
+      snippet: "Connectez-vous pour consulter votre commande."
+    }
+  }
+];
+
+for (const { input, label } of multilingualBenignTransactionalCases) {
+  assertBelowDefaultThreshold(input, label);
+}
+
 {
   assertVisibleRisk(
     {
@@ -140,6 +179,70 @@ function assertVisibleRisk(input, label) {
   );
 }
 
+const multilingualCredentialPhishingCases = [
+  {
+    label: "simplified chinese credential pressure",
+    input: {
+      sender: "系统通知 <notice@system-alert.info>",
+      subject: "最后通知：账号即将停用",
+      snippet: "请立即验证您的账号并输入密码。"
+    }
+  },
+  {
+    label: "japanese credential pressure",
+    input: {
+      sender: "Security <notice@system-alert.info>",
+      subject: "最終通知: アカウントが停止されます",
+      snippet: "パスワードを確認してアカウントを再有効化してください。"
+    }
+  },
+  {
+    label: "spanish credential pressure without accent",
+    input: {
+      sender: "Soporte <notice@system-alert.info>",
+      subject: "Aviso final: su cuenta sera suspendida",
+      snippet: "Verifique su contrasena para reactivar su cuenta."
+    }
+  },
+  {
+    label: "french credential pressure without accent",
+    input: {
+      sender: "Securite <notice@system-alert.info>",
+      subject: "Dernier avis: votre compte sera suspendu",
+      snippet: "Veuillez verifier votre compte pour reactiver votre compte."
+    }
+  }
+];
+
+for (const { input, label } of multilingualCredentialPhishingCases) {
+  const result = assertVisibleRisk(input, label);
+  assert.ok(result.score >= 45, `${label} expected high score, got ${result.score}`);
+}
+
+const mixedLanguageCredentialCases = [
+  {
+    label: "paypal spanish credential impersonation",
+    input: {
+      sender: "PayPal Support <security@paypal-secure.xyz>",
+      subject: "PayPal aviso final",
+      snippet: "Verifique su contrasena para reactivar su cuenta."
+    }
+  },
+  {
+    label: "google japanese credential impersonation",
+    input: {
+      sender: "Google Security <alert@google-account-support.xyz>",
+      subject: "Google 最終通知",
+      snippet: "アカウントを確認し、パスワードを更新してください。"
+    }
+  }
+];
+
+for (const { input, label } of mixedLanguageCredentialCases) {
+  const result = assertVisibleRisk(input, label);
+  assert.match(result.issues.map((issue) => issue.title).join(" "), /Google|PayPal|急迫/);
+}
+
 {
   assertVisibleRisk(
     {
@@ -148,6 +251,17 @@ function assertVisibleRisk(input, label) {
       snippet: "Claim your prize now. Login to confirm your account."
     },
     "lure with suspicious domain"
+  );
+}
+
+{
+  assertVisibleRisk(
+    {
+      sender: "Netflix Promo <winner@streaming-gift.xyz>",
+      subject: "Ganador de tarjeta regalo",
+      snippet: "Reclame su premio gratis ahora."
+    },
+    "spanish lure with suspicious domain"
   );
 }
 
@@ -165,6 +279,17 @@ function assertVisibleRisk(input, label) {
 {
   assertVisibleRisk(
     {
+      sender: "IT Support <support@company.example>",
+      subject: "請求書.zip",
+      snippet: "マクロを有効にして表示してください。"
+    },
+    "japanese dangerous file and macro"
+  );
+}
+
+{
+  assertVisibleRisk(
+    {
       sender: "Unknown <notice@example.com>",
       subject: "請檢查連結",
       snippet: "這封信包含可疑連結。",
@@ -175,9 +300,21 @@ function assertVisibleRisk(input, label) {
 }
 
 {
+  assertBelowDefaultThreshold(
+    {
+      sender: "Newsletter <notice@example.com>",
+      subject: "Final notice about accounting newsletter",
+      snippet: "No user action is requested."
+    },
+    "latin boundary avoids account inside accounting"
+  );
+}
+
+{
   assert.equal(rules.getEmailDomain("Name <person@example.com>"), "example.com");
   assert.equal(rules.baseDomain("mail.google.com"), "google.com");
   assert.equal(rules.baseDomain("service.momo.com.tw"), "momo.com.tw");
+  assert.equal(rules.normalizeText("ＡＢＣ　パスワード"), "ABC パスワード");
 }
 
 console.log("Rule tests passed.");

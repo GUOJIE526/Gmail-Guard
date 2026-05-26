@@ -15,4 +15,4 @@ Technical notes for review:
 - Does not modify email state. It does not delete, move, label, archive, mark read/unread, send, or forward messages.
 - Does not collect, sell, or share user data with the developer. Optional Safe Browsing API checks send only extracted external URLs to Google when the user enables the feature.
 
-The extension reads only currently loaded Gmail or Outlook DOM rows marked as unread on the current mail page and checks sender, subject, snippet text, and visible external URLs using local rules. It does not scan across mail pages or the full mailbox. It then adds visual indicators in the current mail page and a local floating summary panel.
+The extension reads only currently loaded Gmail or Outlook DOM rows marked as unread on the current mail page and checks sender, subject, snippet text, and visible external URLs using local rules, including multilingual wording signals. These signals are phishing-risk hints, not perfect detection. It does not scan across mail pages or the full mailbox. It then adds visual indicators in the current mail page and a local floating summary panel.

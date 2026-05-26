@@ -12,7 +12,7 @@ Local phishing-risk hints for unread messages on the current Gmail or Outlook pa
 
 Gmail Guard scans only the unread messages currently loaded on your current Gmail or Outlook page and highlights messages that may deserve extra caution.
 
-It checks sender/domain clues, brand impersonation patterns, urgent account-verification wording, payment and refund wording, prize or gift-card language, risky file wording, optional Safe Browsing API URL reputation signals, and other common phishing signals.
+It checks sender/domain clues, brand impersonation patterns, multilingual urgent account-verification wording, payment and refund wording, prize or gift-card language, risky file wording, optional Safe Browsing API URL reputation signals, and other common phishing signals.
 
 The extension is designed for quiet, on-demand protection. It runs when you open Gmail or Outlook Web and does not send daily reminders.
 
@@ -28,7 +28,7 @@ Privacy-first behavior:
 - Does not use analytics, ads, tracking, or external AI services
 - Does not delete, move, label, or modify emails
 
-Important limitation: because this version intentionally avoids mail provider API access, it only analyzes unread Gmail or Outlook rows that are currently loaded on the current mail page. It does not scan across mail pages or the full mailbox. The scan limit is an upper bound for the current page, not a mailbox-wide fetch count. Safe Browsing API no-match results do not mean a message is safe.
+Important limitation: because this version intentionally avoids mail provider API access, it only analyzes unread Gmail or Outlook rows that are currently loaded on the current mail page. It does not scan across mail pages or the full mailbox. The scan limit is an upper bound for the current page, not a mailbox-wide fetch count. Multilingual wording signals are local phishing-risk hints, not perfect detection. Safe Browsing API no-match results do not mean a message is safe.
 
 ## Single Purpose
 
