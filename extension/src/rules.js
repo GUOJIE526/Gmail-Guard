@@ -119,119 +119,326 @@
     }
   ];
 
-  const urgentTerms = [
-    "立即",
-    "馬上",
-    "限時",
-    "最後通知",
-    "帳號即將",
-    "即將停用",
-    "緊急",
-    "逾期",
-    "urgent",
-    "immediately",
-    "final notice",
-    "action required",
-    "expires today",
-    "suspended",
-    "locked"
-  ];
-
-  const accountAccessTerms = [
-    "登入",
-    "帳號",
-    "身分",
-    "身份",
-    "login",
-    "log in",
-    "sign in",
-    "account"
-  ];
-
-  const routineAccessTerms = [
-    "登入查看",
-    "登入後查看",
-    "登入以查看",
-    "登入即可查看",
-    "sign in to view",
-    "login to view",
-    "log in to view",
-    "view your invoice",
-    "view your order"
-  ];
-
-  const credentialTheftTerms = [
-    "密碼",
-    "驗證帳號",
-    "確認帳號",
-    "驗證您的帳號",
-    "確認您的帳號",
-    "重新啟用",
-    "安全性警告",
-    "輸入密碼",
-    "更新密碼",
-    "verify",
-    "password",
-    "credential",
-    "confirm your account",
-    "security alert",
-    "update your password",
-    "enter your password",
-    "reactivate"
-  ];
-
-  const transactionalTerms = [
-    "付款",
-    "匯款",
-    "發票",
-    "退款",
-    "帳單",
-    "信用卡",
-    "訂單",
-    "收據",
-    "payment",
-    "invoice",
-    "refund",
-    "receipt",
-    "order",
-    "wire transfer",
-    "bank transfer",
-    "billing"
-  ];
-
-  const lureTerms = [
-    "中獎",
-    "抽獎",
-    "禮品卡",
-    "免費領取",
-    "gift card",
-    "lottery",
-    "winner",
-    "prize",
-    "giveaway"
-  ];
-
-  const dangerousFileTerms = [
-    ".exe",
-    ".scr",
-    ".jse",
-    ".vbs",
-    ".wsf",
-    ".bat",
-    ".cmd",
-    ".iso",
-    ".img",
-    ".html",
-    ".htm",
-    ".zip",
-    ".rar",
-    ".7z",
-    "啟用巨集",
-    "enable macros"
-  ];
+  const signalTerms = {
+    urgent: [
+      "立即",
+      "馬上",
+      "限時",
+      "最後通知",
+      "帳號即將",
+      "即將停用",
+      "緊急",
+      "逾期",
+      "马上",
+      "最后通知",
+      "账号即将",
+      "即将停用",
+      "紧急",
+      "暂停",
+      "锁定",
+      "至急",
+      "最終通知",
+      "本日中",
+      "停止されます",
+      "ロックされました",
+      "期限切れ",
+      "urgent",
+      "immediately",
+      "final notice",
+      "action required",
+      "expires today",
+      "suspended",
+      "locked",
+      "urgente",
+      "inmediatamente",
+      "aviso final",
+      "ultimo aviso",
+      "último aviso",
+      "vence hoy",
+      "suspendida",
+      "suspendido",
+      "bloqueada",
+      "bloqueado",
+      "acción requerida",
+      "dernier avis",
+      "immédiatement",
+      "expire aujourd'hui",
+      "suspendu",
+      "suspendue",
+      "bloqué",
+      "bloquée",
+      "action requise"
+    ],
+    accountAccess: [
+      "登入",
+      "帳號",
+      "身分",
+      "身份",
+      "登录",
+      "账号",
+      "账户",
+      "ログイン",
+      "サインイン",
+      "アカウント",
+      "本人確認",
+      "login",
+      "log in",
+      "sign in",
+      "account",
+      "iniciar sesión",
+      "acceder",
+      "cuenta",
+      "identidad",
+      "connexion",
+      "connecter",
+      "compte",
+      "identité"
+    ],
+    routineAccess: [
+      "登入查看",
+      "登入後查看",
+      "登入以查看",
+      "登入即可查看",
+      "登录查看",
+      "登录后查看",
+      "登录以查看",
+      "登录即可查看",
+      "查看订单",
+      "查看发票",
+      "ログインして確認",
+      "ログインして表示",
+      "サインインして確認",
+      "請求書を確認",
+      "注文を確認",
+      "配送状況を確認",
+      "sign in to view",
+      "login to view",
+      "log in to view",
+      "view your invoice",
+      "view your order",
+      "view your receipt",
+      "view your shipment",
+      "inicie sesión para ver",
+      "iniciar sesión para ver",
+      "acceda para ver",
+      "ver su factura",
+      "ver su pedido",
+      "consulte su factura",
+      "consultar pedido",
+      "connectez-vous pour consulter",
+      "connectez vous pour voir",
+      "voir votre facture",
+      "consulter votre facture",
+      "voir votre commande",
+      "consulter votre commande"
+    ],
+    credentialTheft: [
+      "密碼",
+      "驗證帳號",
+      "確認帳號",
+      "驗證您的帳號",
+      "確認您的帳號",
+      "重新啟用",
+      "安全性警告",
+      "輸入密碼",
+      "更新密碼",
+      "密码",
+      "验证账号",
+      "确认账号",
+      "验证您的账号",
+      "确认您的账号",
+      "验证账户",
+      "确认账户",
+      "验证您的账户",
+      "重新启用",
+      "安全警告",
+      "输入密码",
+      "更新密码",
+      "パスワード",
+      "認証情報",
+      "アカウントを確認",
+      "アカウント確認",
+      "再有効化",
+      "セキュリティ警告",
+      "パスワードを入力",
+      "パスワードを更新",
+      "verify",
+      "password",
+      "credential",
+      "confirm your account",
+      "security alert",
+      "update your password",
+      "enter your password",
+      "reactivate",
+      "verifique su cuenta",
+      "confirmar su cuenta",
+      "contraseña",
+      "clave",
+      "reactivar",
+      "reactive su cuenta",
+      "actualice su contraseña",
+      "ingrese su contraseña",
+      "vérifier votre compte",
+      "confirmer votre compte",
+      "mot de passe",
+      "identifiants",
+      "réactiver",
+      "alerte de sécurité",
+      "saisir votre mot de passe",
+      "mettre à jour votre mot de passe"
+    ],
+    transactional: [
+      "付款",
+      "匯款",
+      "發票",
+      "退款",
+      "帳單",
+      "信用卡",
+      "訂單",
+      "收據",
+      "汇款",
+      "发票",
+      "账单",
+      "订单",
+      "收据",
+      "物流",
+      "配送",
+      "支払い",
+      "送金",
+      "請求書",
+      "返金",
+      "領収書",
+      "注文",
+      "クレジットカード",
+      "請求",
+      "payment",
+      "payments",
+      "invoice",
+      "invoices",
+      "refund",
+      "refunds",
+      "receipt",
+      "receipts",
+      "order",
+      "orders",
+      "shipment",
+      "shipments",
+      "wire transfer",
+      "bank transfer",
+      "billing",
+      "pago",
+      "transferencia",
+      "factura",
+      "reembolso",
+      "recibo",
+      "pedido",
+      "envío",
+      "tarjeta de crédito",
+      "facturación",
+      "paiement",
+      "virement",
+      "facture",
+      "remboursement",
+      "reçu",
+      "commande",
+      "livraison",
+      "carte bancaire"
+    ],
+    lure: [
+      "中獎",
+      "抽獎",
+      "禮品卡",
+      "免費領取",
+      "中奖",
+      "抽奖",
+      "礼品卡",
+      "免费领取",
+      "赠品",
+      "当選",
+      "抽選",
+      "ギフトカード",
+      "無料で受け取る",
+      "賞品",
+      "プレゼント",
+      "gift card",
+      "lottery",
+      "winner",
+      "prize",
+      "giveaway",
+      "tarjeta regalo",
+      "lotería",
+      "ganador",
+      "premio",
+      "sorteo",
+      "regalo gratis",
+      "carte cadeau",
+      "loterie",
+      "gagnant",
+      "prix",
+      "cadeau gratuit",
+      "tirage"
+    ],
+    dangerousFile: [
+      ".exe",
+      ".scr",
+      ".jse",
+      ".vbs",
+      ".wsf",
+      ".bat",
+      ".cmd",
+      ".iso",
+      ".img",
+      ".html",
+      ".htm",
+      ".zip",
+      ".rar",
+      ".7z",
+      "啟用巨集",
+      "启用宏",
+      "マクロを有効",
+      "マクロ有効化",
+      "enable macros",
+      "habilitar macros",
+      "activar macros",
+      "activer les macros"
+    ]
+  };
 
   function normalizeText(value) {
-    return String(value || "").replace(/\s+/g, " ").trim();
+    const text = String(value || "");
+    const normalized = typeof text.normalize === "function" ? text.normalize("NFKC") : text;
+    return normalized.replace(/\s+/g, " ").trim();
+  }
+
+  function normalizeForMatch(value) {
+    return normalizeText(value).toLowerCase();
+  }
+
+  function foldLatinAccents(value) {
+    const text = normalizeForMatch(value);
+    const decomposed = typeof text.normalize === "function" ? text.normalize("NFD") : text;
+    return decomposed.replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function usesAsciiWordBoundaries(term) {
+    const folded = foldLatinAccents(term);
+    return /^[a-z0-9][a-z0-9\s'.-]*[a-z0-9]$/i.test(folded) && /[a-z]/i.test(folded);
+  }
+
+  function termMatches(normalizedText, foldedText, term) {
+    const normalizedTerm = normalizeForMatch(term);
+    if (!normalizedTerm) return false;
+
+    const foldedTerm = foldLatinAccents(term);
+    if (usesAsciiWordBoundaries(term)) {
+      return new RegExp(`(^|[^a-z0-9])${escapeRegExp(foldedTerm)}(?=$|[^a-z0-9])`, "i").test(foldedText);
+    }
+
+    return normalizedText.includes(normalizedTerm) || foldedText.includes(foldedTerm);
   }
 
   function parseEmail(value) {
@@ -278,8 +485,9 @@
   }
 
   function containsAny(text, terms) {
-    const lower = normalizeText(text).toLowerCase();
-    return terms.filter((term) => lower.includes(term.toLowerCase()));
+    const normalizedText = normalizeForMatch(text);
+    const foldedText = foldLatinAccents(text);
+    return terms.filter((term) => termMatches(normalizedText, foldedText, term));
   }
 
   function skeleton(value) {
@@ -294,12 +502,12 @@
   }
 
   function findMentionedBrands(text) {
-    const lower = normalizeText(text).toLowerCase();
-    return brandRules.filter((rule) => rule.keywords.some((keyword) => lower.includes(keyword.toLowerCase())));
+    const lower = normalizeForMatch(text);
+    return brandRules.filter((rule) => rule.keywords.some((keyword) => lower.includes(normalizeForMatch(keyword))));
   }
 
   function hasRoutineAccessContext(text) {
-    return containsAny(text, routineAccessTerms).length > 0;
+    return containsAny(text, signalTerms.routineAccess).length > 0;
   }
 
   function threatDetails(threats) {
@@ -400,12 +608,12 @@
       addIssue(issues, "low", "無法確認寄件網域", "目前郵件列表未提供可解析的寄件者 email");
     }
 
-    const urgentHits = containsAny(fullText, urgentTerms);
-    const accountAccessHits = containsAny(fullText, accountAccessTerms);
-    const credentialTheftHits = containsAny(fullText, credentialTheftTerms);
-    const transactionalHits = containsAny(fullText, transactionalTerms);
-    const lureHits = containsAny(fullText, lureTerms);
-    const fileHits = containsAny(fullText, dangerousFileTerms);
+    const urgentHits = containsAny(fullText, signalTerms.urgent);
+    const accountAccessHits = containsAny(fullText, signalTerms.accountAccess);
+    const credentialTheftHits = containsAny(fullText, signalTerms.credentialTheft);
+    const transactionalHits = containsAny(fullText, signalTerms.transactional);
+    const lureHits = containsAny(fullText, signalTerms.lure);
+    const fileHits = containsAny(fullText, signalTerms.dangerousFile);
     const routineAccess = hasRoutineAccessContext(fullText);
 
     if (urgentHits.length > 0 && (credentialTheftHits.length > 0 || accountAccessHits.length > 0)) {
@@ -436,7 +644,7 @@
     }
 
     if (fileHits.length > 0) {
-      const macroHit = fileHits.some((hit) => /巨集|macro/i.test(hit));
+      const macroHit = fileHits.some((hit) => /巨集|宏|マクロ|macro/i.test(hit));
       addIssue(
         issues,
         macroHit || fileHits.length > 1 ? "high" : "medium",

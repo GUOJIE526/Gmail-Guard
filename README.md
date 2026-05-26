@@ -8,9 +8,9 @@ Gmail Guard is a Chrome extension that helps Gmail and Outlook users notice susp
 
 Gmail Guard is built for people who receive many Gmail or Outlook messages and want a lightweight safety check before opening unread mail.
 
-The extension scans unread messages that are already visible on the current Gmail or Outlook page and highlights messages that may look suspicious because of sender/domain clues, brand impersonation wording, urgent account-verification language, payment/refund wording, prize or gift-card lures, risky file wording, or optional Safe Browsing API URL reputation results.
+The extension scans unread messages that are already visible on the current Gmail or Outlook page and highlights messages that may look suspicious because of sender/domain clues, brand impersonation wording, multilingual urgent account-verification language, payment/refund wording, prize or gift-card lures, risky file wording, or optional Safe Browsing API URL reputation results.
 
-它的目的不是幫使用者管理信箱，也不是自動判定信件安全與否；it is a warning layer that helps suspicious messages stand out before the user clicks.
+它的目的不是幫使用者管理信箱，也不是自動判定信件安全與否；it is a warning layer that helps suspicious messages stand out before the user clicks. 多語 wording signals 只是 local phishing-risk hints，不代表完整偵測能力，也不會跨頁或掃描整個信箱。
 
 ## Local Install
 
