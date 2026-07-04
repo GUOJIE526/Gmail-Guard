@@ -110,6 +110,17 @@ function assertVisibleRisk(input, label) {
 {
   assertBelowDefaultThreshold(
     {
+      sender: "交通部公路局 <news@thb.gov.tw>",
+      subject: "道路安全宣導",
+      snippet: "本週交通安全資訊與用路提醒。"
+    },
+    "trusted government bulletin without payment request"
+  );
+}
+
+{
+  assertBelowDefaultThreshold(
+    {
       sender: "DHL Express <notice@dhl.com>",
       subject: "Shipment receipt",
       snippet: "Your receipt and order shipment details are available to view."
@@ -166,6 +177,44 @@ for (const { input, label } of multilingualBenignTransactionalCases) {
     },
     "shopee suspicious domain invoice"
   );
+}
+
+{
+  const result = assertVisibleRisk(
+    {
+      sender: "交通部公路局 <noreplytfr@mvdis.gov.tw>",
+      subject: "115年度公路養管費(原汽燃費)電子繳款單",
+      snippet:
+        "請於115年07月31日以前完成繳納，前往線上繳費，監理服務網，身分證字號，識別碼，信用卡繳費。"
+    },
+    "taiwan highway payment phish"
+  );
+  assert.match(result.issues.map((issue) => issue.title).join(" "), /政府機關繳費信/);
+}
+
+{
+  assertVisibleRisk(
+    {
+      sender: "交通部公路局 <noreplytfr@mvdis.gov.tw>",
+      subject: "115年度公路養管費(原汽燃費)電子繳款單",
+      snippet: ""
+    },
+    "taiwan highway payment subject-only row"
+  );
+}
+
+{
+  const result = assertVisibleRisk(
+    {
+      sender: "交通部公路局 <noreplytfr@mvdis.gov.tw>",
+      subject: "115年度公路養管費(原汽燃費)電子繳款單",
+      snippet: "請點擊前往線上繳費並輸入身分證字號。",
+      urls: ["https://mvdis-payment.example/pay"]
+    },
+    "taiwan highway payment offsite link"
+  );
+  assert.ok(["high", "critical"].includes(result.risk.key), `expected high or critical, got ${result.risk.key}`);
+  assert.match(result.issues.map((issue) => issue.title).join(" "), /\.gov\.tw/);
 }
 
 {

@@ -107,6 +107,11 @@
       allowedDomains: ["post.gov.tw"]
     },
     {
+      brand: "Taiwan Motor Vehicle Services",
+      keywords: ["交通部公路局", "交通部公路總局", "公路總局", "公路局", "監理服務網", "公路養管費", "汽燃費", "mvdis"],
+      allowedDomains: ["mvdis.gov.tw", "thb.gov.tw", "motc.gov.tw"]
+    },
+    {
       brand: "Taiwan Banks",
       keywords: ["中國信託", "國泰世華", "台新銀行", "玉山銀行", "台灣銀行", "銀行通知"],
       allowedDomains: [
@@ -290,6 +295,12 @@
     transactional: [
       "付款",
       "匯款",
+      "繳費",
+      "繳款",
+      "繳納",
+      "繳款單",
+      "線上繳費",
+      "電子繳款單",
       "發票",
       "退款",
       "帳單",
@@ -401,6 +412,46 @@
       "habilitar macros",
       "activar macros",
       "activer les macros"
+    ],
+    taiwanTransportGovernment: [
+      "交通部公路局",
+      "交通部公路總局",
+      "公路總局",
+      "公路局",
+      "監理服務網",
+      "監理站",
+      "監理所",
+      "mvdis",
+      "公路養管費",
+      "汽燃費",
+      "燃料使用費",
+      "汽機車燃料費",
+      "牌照稅",
+      "交通罰鍰",
+      "罰單"
+    ],
+    governmentPayment: [
+      "電子繳款單",
+      "線上繳費",
+      "前往線上繳費",
+      "繳費",
+      "繳款",
+      "繳納",
+      "繳款單",
+      "信用卡繳費",
+      "超商補單",
+      "超商繳費"
+    ],
+    identityData: [
+      "身分證字號",
+      "身份證字號",
+      "統一編號",
+      "識別碼",
+      "證號",
+      "車牌號碼",
+      "車號",
+      "信用卡卡號",
+      "金融卡"
     ]
   };
 
@@ -482,6 +533,19 @@
       const cleanAllowed = allowed.toLowerCase();
       return cleanHost === cleanAllowed || cleanHost.endsWith(`.${cleanAllowed}`) || hostBase === baseDomain(cleanAllowed);
     });
+  }
+
+  function urlHost(value) {
+    try {
+      return new URL(String(value || "")).hostname.replace(/\.$/, "").toLowerCase();
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function isTaiwanGovDomain(host) {
+    const clean = String(host || "").replace(/\.$/, "").toLowerCase();
+    return clean === "gov.tw" || clean.endsWith(".gov.tw");
   }
 
   function containsAny(text, terms) {
@@ -614,7 +678,25 @@
     const transactionalHits = containsAny(fullText, signalTerms.transactional);
     const lureHits = containsAny(fullText, signalTerms.lure);
     const fileHits = containsAny(fullText, signalTerms.dangerousFile);
+    const taiwanTransportGovernmentHits = containsAny(fullText, signalTerms.taiwanTransportGovernment);
+    const governmentPaymentHits = containsAny(fullText, signalTerms.governmentPayment);
+    const identityDataHits = containsAny(fullText, signalTerms.identityData);
     const routineAccess = hasRoutineAccessContext(fullText);
+
+    if (taiwanTransportGovernmentHits.length > 0 && governmentPaymentHits.length > 0) {
+      const detail = [taiwanTransportGovernmentHits[0], governmentPaymentHits[0], identityDataHits[0]]
+        .filter(Boolean)
+        .join(" / ");
+      addIssue(issues, "high", "政府機關繳費信需人工確認", detail);
+    }
+
+    const offsiteGovernmentPaymentHosts =
+      taiwanTransportGovernmentHits.length > 0 && governmentPaymentHits.length > 0
+        ? urls.map(urlHost).filter((host) => host && !isTaiwanGovDomain(host))
+        : [];
+    if (offsiteGovernmentPaymentHosts.length > 0) {
+      addIssue(issues, "high", "政府繳費連結不在 .gov.tw 網域", offsiteGovernmentPaymentHosts[0]);
+    }
 
     if (urgentHits.length > 0 && (credentialTheftHits.length > 0 || accountAccessHits.length > 0)) {
       addIssue(
