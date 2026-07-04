@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Gmail Guard",
   "short_name": "Gmail Guard",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Highlights suspicious unread messages on the current Gmail or Outlook page with local phishing-risk hints.",
   "minimum_chrome_version": "114",
   "icons": {
